@@ -213,13 +213,14 @@ function signup($conn){
 
 			$struserId = $_POST['userId'];
 			$name = $_POST['name'];  
+			$username = $_POST['username'];
 			$password = $_POST['password'];
 			$note = $_POST['note'];  
 
 			$userId = (int) $struserId;
  			//creating the query 
-			$stmt = $conn->prepare("INSERT INTO SERVICES (userId, name, password, note) VALUES (?, ?, ?, ?)");
-			$stmt->bind_param("isss", $userId, $name, $password, $note);
+			$stmt = $conn->prepare("INSERT INTO SERVICES (userId, name, username, password, note) VALUES (?, ?, ?, ?, ?)");
+			$stmt->bind_param("issss", $userId, $name, $username, $password, $note);
 
 			if($stmt->execute()){
 
