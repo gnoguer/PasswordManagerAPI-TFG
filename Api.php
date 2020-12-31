@@ -53,10 +53,10 @@ if(isset($_GET['apicall'])){
 		break;
 
 
-		case 'getPasswords':
+		case 'getServices':
 		if(isTheseParametersAvailable(array('userId'))){
 
-			$response = getPasswords($conn);
+			$response = getServices($conn);
 
 		}else{
 
@@ -65,6 +65,17 @@ if(isset($_GET['apicall'])){
 		}
 
 		break;
+
+		case 'getPasswords':
+			$response = getPasswords($conn);
+
+			break;
+
+		case 'getLeaks':
+			
+			$response = getPasswordsFromFile();
+
+			break;
 
 		default: 
 		$response['error'] = true; 
@@ -223,7 +234,7 @@ function signup($conn){
 		return $response;
 	}
 
-	function getPasswords($conn){
+	function getServices($conn){
 
 			//getting values
 			$userId = $_GET["userId"];
@@ -254,12 +265,62 @@ function signup($conn){
 					array_push($passwords, $row);
 				}
 
-				$response['error'] = false; 
+				$response['error'] = false;
+
 				$response['message'] = 'List loaded successfully'; 
 				$response['passwords'] = $passwords; 
 			}
 
 		return $response;
 	}
+
+
+	function getPasswords($conn){
+
+			$userId = $_GET["userId"];
+			
+ 			$stmt = $conn->prepare("SELECT PASSWORD FROM SERVICES WHERE USERID = ?");
+			$stmt->bind_param("i", $userId);
+			
+			$stmt->execute();
+			$stmt->store_result();
+
+			if($stmt->num_rows > 0){
+
+				$stmt->bind_result($password);
+
+				$passwords = array();
+
+				while($stmt->fetch()){
+
+					$row = array(
+							'password'=>$password,
+					);
+					array_push($passwords, $password);
+				}
+
+				$response['error'] = false; 
+				$response['message'] = 'List loaded successfully'; 
+				$response['passwords'] = $passwords; 
+			}
+
+		return $response;
+
+
+	}
+
+	function getPasswordsFromFile(){
+
+		$words = file('./files/words2.txt', FILE_IGNORE_NEW_LINES);
+
+		$response['error'] = false;
+		$respones['message'] = "Leak passwords loaded successfully";
+		$response['leaked_passwords'] = $words;
+
+
+		return $response;
+	}
+
+	
 
 ?>
