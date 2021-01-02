@@ -142,6 +142,48 @@ if(isset($_GET['apicall'])){
 
 		break;
 
+		case 'savePaymentCard':
+
+		if(isTheseParametersAvailable(array('userId', 'name', 'nameOnCard', 'type', 'number', 'securityCode', 'startDate', 'expirationDate'))){
+
+			$response = savePaymentCard($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
+		case 'getPaymentCards':
+
+		if(isTheseParametersAvailable(array('userId'))){
+
+			$response = getPaymentCards($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
+		case 'deletePaymentCard':
+
+		if(isTheseParametersAvailable(array('code'))){
+
+			$response = deletePaymentCard($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
 
 		default: 
 		$response['error'] = true; 
@@ -492,6 +534,110 @@ function deleteNote($conn){
 	}else{
 		$response['error'] = true; 
 		$response['message'] = 'Note could not be deleted'; 
+	}
+
+	return $response;
+}
+
+function savePaymentCard($conn){
+
+	$struserId = $_POST['userId'];
+	$name = $_POST['name'];  
+	$nameOnCard = $_POST['nameOnCard'];
+	$type = $_POST['type'];
+	$number = $_POST['number'];
+	$securityCode = $_POST['securityCode'];
+	$startDate = $_POST['startDate'];
+	$expirationDate = $_POST['expirationDate'];
+
+	$userId = (int) $struserId;
+ 			//creating the query 
+
+	$stmt = $conn->prepare("INSERT INTO PAYMENT_CARDS (userId, name, name_on_card, type, number, security_code, start_date, expiration_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+	$stmt->bind_param("isssssss", $userId, $name, $nameOnCard, $type, $number, $securityCode, $startDate, $expirationDate);
+
+	if($stmt->execute()){
+
+		$stmt = $conn->prepare("SELECT LAST_INSERT_ID()"); 
+		$stmt->execute();
+		$stmt->bind_result($code);
+		$stmt->fetch();
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Payment card saved successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not save your payment card right now';
+	}
+
+	return $response;
+
+}
+
+function getPaymentCards($conn){
+
+	$userId = $_GET["userId"];
+
+ 			//creating the query 
+	$stmt = $conn->prepare("SELECT * FROM PAYMENT_CARDS WHERE USERID = ?");
+	$stmt->bind_param("i", $userId);
+
+	$stmt->execute();
+	$stmt->store_result();
+
+	if($stmt->num_rows > 0){
+
+		$stmt->bind_result($code, $userId, $name, $nameOnCard, $type, $number, $securityCode, $startDate, $expirationDate);
+
+		$paymentCards = array();
+
+		while($stmt->fetch()){
+
+			$row = array(
+				'code'=>$code,
+				'userId'=>$userId,
+				'name'=>$name,
+				'nameOnCard'=>$nameOnCard,
+				'type'=>$type,
+				'number'=>$number,
+				'securityCode'=>$securityCode,
+				'startDate'=>$startDate,
+				'expirationDate'=>$expirationDate
+
+			);
+			array_push($paymentCards, $row);
+		}
+
+		$response['error'] = false;
+
+		$response['message'] = 'List loaded successfully'; 
+		$response['notes'] = $paymentCards; 
+	}
+
+	return $response;
+
+}
+
+function deletePaymentCard($conn){
+
+	$code = $_POST["code"];
+
+	$stmt = $conn->prepare("DELETE FROM PAYMENT_CARDS WHERE PAYMENT_CARDS.CODE = ?");
+	$stmt->bind_param("i", $code);
+
+	if($stmt->execute()){
+
+		$response['error'] = false; 
+		$response['message'] = 'Payment card deleted successfully'; 
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'Payment card could not be deleted'; 
 	}
 
 	return $response;
