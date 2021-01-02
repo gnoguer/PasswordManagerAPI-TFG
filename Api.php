@@ -114,6 +114,34 @@ if(isset($_GET['apicall'])){
 
 		break;
 
+		case 'getNotes':
+
+		if(isTheseParametersAvailable(array('userId'))){
+
+			$response = getNotes($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
+		case 'deleteNote':
+
+		if(isTheseParametersAvailable(array('code'))){
+
+			$response = deleteNote($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
 
 		default: 
 		$response['error'] = true; 
@@ -409,6 +437,64 @@ function saveNote($conn){
 
 	return $response;
 
+}
+
+function getNotes($conn){
+
+	$userId = $_GET["userId"];
+
+ 			//creating the query 
+	$stmt = $conn->prepare("SELECT * FROM NOTES WHERE USERID = ?");
+	$stmt->bind_param("i", $userId);
+
+	$stmt->execute();
+	$stmt->store_result();
+
+	if($stmt->num_rows > 0){
+
+		$stmt->bind_result($code, $userId, $name, $note);
+
+		$notes = array();
+
+		while($stmt->fetch()){
+
+			$row = array(
+				'code'=>$code,
+				'userId'=>$userId,
+				'name'=>$name,
+				'note'=>$note
+			);
+			array_push($notes, $row);
+		}
+
+		$response['error'] = false;
+
+		$response['message'] = 'List loaded successfully'; 
+		$response['notes'] = $notes; 
+	}
+
+	return $response;
+
+}
+
+function deleteNote($conn){
+
+	$code = $_POST["code"];
+
+	$stmt = $conn->prepare("DELETE FROM NOTES WHERE NOTES.CODE = ?");
+	$stmt->bind_param("i", $code);
+
+	if($stmt->execute()){
+
+		$response['error'] = false; 
+		$response['message'] = 'Note deleted successfully'; 
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'Note could not be deleted'; 
+	}
+
+	return $response;
 }
 
 function getPasswordsFromFile(){
