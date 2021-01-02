@@ -20,7 +20,7 @@ if(isset($_GET['apicall'])){
 			$response['message'] = 'required parameters are not available'; 
 		}
 
- 
+
 		break; 
 
 		case 'login':
@@ -30,12 +30,12 @@ if(isset($_GET['apicall'])){
 
 			$response = login($conn);
 
-			}else{
+		}else{
 
  				//if the user not found 
-				$response['error'] = false; 
-				$response['message'] = 'Invalid username or password';
-			}
+			$response['error'] = false; 
+			$response['message'] = 'Invalid username or password';
+		}
 
 		break; 
 
@@ -67,15 +67,53 @@ if(isset($_GET['apicall'])){
 		break;
 
 		case 'getPasswords':
+
+		if(isTheseParametersAvailable(array('userId'))){
+
 			$response = getPasswords($conn);
 
-			break;
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
 
 		case 'getLeaks':
-			
-			$response = getPasswordsFromFile();
 
-			break;
+		$response = getPasswordsFromFile();
+
+		break;
+
+		case 'deleteService':
+
+		if(isTheseParametersAvailable(array('code'))){
+
+			$response = deleteService($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
+		case 'saveNote':
+
+		if(isTheseParametersAvailable(array('userId', 'name', 'note'))){
+
+			$response = saveNote($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
 
 		default: 
 		$response['error'] = true; 
@@ -110,218 +148,281 @@ function isTheseParametersAvailable($params){
 	return true; 
 }
 
+function deleteService($conn){
+
+	$code = $_POST["code"];
+
+	$stmt = $conn->prepare("DELETE FROM SERVICES WHERE SERVICES.CODE = ?");
+	$stmt->bind_param("i", $code);
+
+	if($stmt->execute()){
+
+		$response['error'] = false; 
+		$response['message'] = 'Service deleted successfully'; 
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'Service could not be deleted'; 
+	}
+
+	return $response;
+
+}
+
 function signup($conn){
 
 			//getting the values 
-			$email = $_POST['email']; 
-			$password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+	$email = $_POST['email']; 
+	$password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
 
  			//checking if the user is already exist with this username or email
  			//as the email and username should be unique for every user 
-			$stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-			$stmt->bind_param("s", $email);
-			$stmt->execute();
-			$stmt->store_result();
+	$stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+	$stmt->bind_param("s", $email);
+	$stmt->execute();
+	$stmt->store_result();
 
 			//if the user already exist in the database 
-			if($stmt->num_rows > 0){
+	if($stmt->num_rows > 0){
 
-				$response['error'] = true;
-				$response['message'] = 'User already registered';
-				$stmt->close();
+		$response['error'] = true;
+		$response['message'] = 'User already registered';
+		$stmt->close();
 
-			}else{
+	}else{
 
 				 //if user is new creating an insert query 
-				$stmt = $conn->prepare("INSERT INTO users (email, password) VALUES (?, ?)");
-				$stmt->bind_param("ss", $email, $password);
+		$stmt = $conn->prepare("INSERT INTO users (email, password) VALUES (?, ?)");
+		$stmt->bind_param("ss", $email, $password);
 
 				 //if the user is successfully added to the database 
-				if($stmt->execute()){
+		if($stmt->execute()){
 
  					//fetching the user back 
-					$stmt = $conn->prepare("SELECT id, email FROM users WHERE email = ?"); 
-					$stmt->bind_param("s", $email);
-					$stmt->execute();
-					$stmt->bind_result($id, $email,);
-					$stmt->fetch();
+			$stmt = $conn->prepare("SELECT id, email FROM users WHERE email = ?"); 
+			$stmt->bind_param("s", $email);
+			$stmt->execute();
+			$stmt->bind_result($id, $email,);
+			$stmt->fetch();
 
-					$user = array(
-						'id'=>$id, 
-						'email'=>$email,
-					);
+			$user = array(
+				'id'=>$id, 
+				'email'=>$email,
+			);
 
-					$stmt->close();
+			$stmt->close();
 
  					//adding the user data in response 
-					$response['error'] = false; 
-					$response['message'] = 'User registered successfully'; 
-					$response['user'] = $user; 
-				}
-			}
-
-			return $response;
+			$response['error'] = false; 
+			$response['message'] = 'User registered successfully'; 
+			$response['user'] = $user; 
 		}
+	}
 
-	function login($conn){
+	return $response;
+}
+
+function login($conn){
 
 			//getting values 
-			$email = $_POST['email'];
-			$password = $_POST['password']; 
+	$email = $_POST['email'];
+	$password = $_POST['password']; 
 
  			//creating the query 
-			$stmt = $conn->prepare("SELECT id, email, password FROM users WHERE email = ?");
-			$stmt->bind_param("s",$email);
+	$stmt = $conn->prepare("SELECT id, email, password FROM users WHERE email = ?");
+	$stmt->bind_param("s",$email);
 
-			$stmt->execute();
-			$stmt->store_result();
+	$stmt->execute();
+	$stmt->store_result();
 
  			//if the user exist with given credentials 
-			if($stmt->num_rows > 0){
+	if($stmt->num_rows > 0){
 
-				$stmt->bind_result($id, $email, $dbPass);
-				$stmt->fetch();
+		$stmt->bind_result($id, $email, $dbPass);
+		$stmt->fetch();
 
 
-				if(password_verify($password, $dbPass)){
+		if(password_verify($password, $dbPass)){
 
-					$user = array(
-					'id'=>$id, 
-					'email'=>$email,
-				);
+			$user = array(
+				'id'=>$id, 
+				'email'=>$email,
+			);
 
-					$response['error'] = false; 
-					$response['message'] = 'Login successfull'; 
-					$response['user'] = $user; 
+			$response['error'] = false; 
+			$response['message'] = 'Login successfull'; 
+			$response['user'] = $user; 
 
-				}else{
+		}else{
 
 					//if the password is incorrect
-					$response['error'] = false; 
-					$response['message'] = 'Invalid username or password';
-				}
-			}
+			$response['error'] = false; 
+			$response['message'] = 'Invalid username or password';
+		}
+	}
 
-			return $response;
+	return $response;
+}
+
+
+function savePass($conn){
+
+			//getting values
+
+	$struserId = $_POST['userId'];
+	$name = $_POST['name'];  
+	$username = $_POST['username'];
+	$password = $_POST['password'];
+	$note = $_POST['note'];  
+
+	$userId = (int) $struserId;
+ 			//creating the query 
+	$stmt = $conn->prepare("INSERT INTO SERVICES (userId, name, username, password, note) VALUES (?, ?, ?, ?, ?)");
+	$stmt->bind_param("issss", $userId, $name, $username, $password, $note);
+
+	if($stmt->execute()){
+
+		$stmt = $conn->prepare("SELECT LAST_INSERT_ID()"); 
+		$stmt->execute();
+		$stmt->bind_result($code);
+		$stmt->fetch();
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Password saved successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not save your password right now';
+	}
+
+	return $response;
+}
+
+function getServices($conn){
+
+			//getting values
+	$userId = $_GET["userId"];
+
+ 			//creating the query 
+	$stmt = $conn->prepare("SELECT * FROM SERVICES WHERE USERID = ?");
+	$stmt->bind_param("i", $userId);
+
+	$stmt->execute();
+	$stmt->store_result();
+
+	if($stmt->num_rows > 0){
+
+		$stmt->bind_result($code, $userId, $name, $username, $password, $note);
+
+		$passwords = array();
+
+		while($stmt->fetch()){
+
+			$row = array(
+				'code'=>$code,
+				'userId'=>$userId,
+				'name'=>$name,
+				'username'=>$username,
+				'password'=>$password,
+				'note'=>$note
+			);
+			array_push($passwords, $row);
 		}
 
-
-	function savePass($conn){
-
-			//getting values
-
-			$struserId = $_POST['userId'];
-			$name = $_POST['name'];  
-			$username = $_POST['username'];
-			$password = $_POST['password'];
-			$note = $_POST['note'];  
-
-			$userId = (int) $struserId;
- 			//creating the query 
-			$stmt = $conn->prepare("INSERT INTO SERVICES (userId, name, username, password, note) VALUES (?, ?, ?, ?, ?)");
-			$stmt->bind_param("issss", $userId, $name, $username, $password, $note);
-
-			if($stmt->execute()){
-
-				$response['error'] = false; 
-				$response['message'] = 'Password saved successfully';
-
-			}else{
-				$response['error'] = true; 
-				$response['message'] = 'We could not save your password right now';
-			}
-
-		return $response;
-	}
-
-	function getServices($conn){
-
-			//getting values
-			$userId = $_GET["userId"];
-			
- 			//creating the query 
- 			$stmt = $conn->prepare("SELECT * FROM SERVICES WHERE USERID = ?");
-			$stmt->bind_param("i", $userId);
-			
-			$stmt->execute();
-			$stmt->store_result();
-
-			if($stmt->num_rows > 0){
-
-				$stmt->bind_result($code, $userId, $name, $username, $password, $note);
-
-				$passwords = array();
-
-				while($stmt->fetch()){
-
-					$row = array(
-							'code'=>$code,
-							'userId'=>$userId,
-							'name'=>$name,
-							'username'=>$username,
-							'password'=>$password,
-							'note'=>$note
-					);
-					array_push($passwords, $row);
-				}
-
-				$response['error'] = false;
-
-				$response['message'] = 'List loaded successfully'; 
-				$response['passwords'] = $passwords; 
-			}
-
-		return $response;
-	}
-
-
-	function getPasswords($conn){
-
-			$userId = $_GET["userId"];
-			
- 			$stmt = $conn->prepare("SELECT PASSWORD FROM SERVICES WHERE USERID = ?");
-			$stmt->bind_param("i", $userId);
-			
-			$stmt->execute();
-			$stmt->store_result();
-
-			if($stmt->num_rows > 0){
-
-				$stmt->bind_result($password);
-
-				$passwords = array();
-
-				while($stmt->fetch()){
-
-					$row = array(
-							'password'=>$password,
-					);
-					array_push($passwords, $password);
-				}
-
-				$response['error'] = false; 
-				$response['message'] = 'List loaded successfully'; 
-				$response['passwords'] = $passwords; 
-			}
-
-		return $response;
-
-
-	}
-
-	function getPasswordsFromFile(){
-
-		$words = file('./files/words2.txt', FILE_IGNORE_NEW_LINES);
-
 		$response['error'] = false;
-		$respones['message'] = "Leak passwords loaded successfully";
-		$response['leaked_passwords'] = $words;
 
-
-		return $response;
+		$response['message'] = 'List loaded successfully'; 
+		$response['passwords'] = $passwords; 
 	}
 
-	
+	return $response;
+}
+
+
+function getPasswords($conn){
+
+	$userId = $_GET["userId"];
+
+	$stmt = $conn->prepare("SELECT PASSWORD FROM SERVICES WHERE USERID = ?");
+	$stmt->bind_param("i", $userId);
+
+	$stmt->execute();
+	$stmt->store_result();
+
+	if($stmt->num_rows > 0){
+
+		$stmt->bind_result($password);
+
+		$passwords = array();
+
+		while($stmt->fetch()){
+
+			$row = array(
+				'password'=>$password,
+			);
+			array_push($passwords, $password);
+		}
+
+		$response['error'] = false; 
+		$response['message'] = 'List loaded successfully'; 
+		$response['passwords'] = $passwords; 
+	}
+
+	return $response;
+
+
+}
+
+function saveNote($conn){
+
+	$struserId = $_POST['userId'];
+	$name = $_POST['name'];  
+	$note = $_POST['note'];  
+
+	$userId = (int) $struserId;
+ 			//creating the query 
+
+	$stmt = $conn->prepare("INSERT INTO NOTES (userId, name, note) VALUES (?, ?, ?)");
+	$stmt->bind_param("iss", $userId,$name, $note);
+
+	if($stmt->execute()){
+
+		$stmt = $conn->prepare("SELECT LAST_INSERT_ID()"); 
+		$stmt->execute();
+		$stmt->bind_result($code);
+		$stmt->fetch();
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Password saved successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not save your password right now';
+	}
+
+	return $response;
+
+}
+
+function getPasswordsFromFile(){
+
+	$words = file('./files/words2.txt', FILE_IGNORE_NEW_LINES);
+
+	$response['error'] = false;
+	$respones['message'] = "Leak passwords loaded successfully";
+	$response['leaked_passwords'] = $words;
+
+
+	return $response;
+}
+
+
 
 ?>
