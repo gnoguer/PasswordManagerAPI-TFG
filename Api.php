@@ -399,12 +399,12 @@ function saveNote($conn){
 		$stmt->close();
 
 		$response['error'] = false; 
-		$response['message'] = 'Password saved successfully';
+		$response['message'] = 'Note saved successfully';
 		$response['code'] = $code;
 
 	}else{
 		$response['error'] = true; 
-		$response['message'] = 'We could not save your password right now';
+		$response['message'] = 'We could not save your note right now';
 	}
 
 	return $response;
