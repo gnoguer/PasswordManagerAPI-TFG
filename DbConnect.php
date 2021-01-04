@@ -3,7 +3,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$database = "passwordmanager";
+$database = "tfg_password_manager";
  
  
 //creating a new connection object using mysqli 

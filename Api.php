@@ -66,6 +66,19 @@ if(isset($_GET['apicall'])){
 
 		break;
 
+		case 'updateService':
+		if(isTheseParametersAvailable(array('code', 'name', 'username', 'password', 'note'))){
+
+			$response = updateService($conn);
+
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
 		case 'getPasswords':
 
 		if(isTheseParametersAvailable(array('userId'))){
@@ -142,9 +155,23 @@ if(isset($_GET['apicall'])){
 
 		break;
 
+		case 'updateNote':
+
+		if(isTheseParametersAvailable(array('code', 'name', 'note'))){
+
+			$response = updateNote($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
 		case 'savePaymentCard':
 
-		if(isTheseParametersAvailable(array('userId', 'name', 'nameOnCard', 'type', 'number', 'securityCode', 'startDate', 'expirationDate'))){
+		if(isTheseParametersAvailable(array('userId', 'name', 'nameOnCard', 'number', 'securityCode', 'expirationDate'))){
 
 			$response = savePaymentCard($conn);
 			
@@ -183,6 +210,21 @@ if(isset($_GET['apicall'])){
 		}
 
 		break;
+
+		case 'updatePaymentCard':
+
+		if(isTheseParametersAvailable(array('code', 'name', 'nameOnCard', 'number', 'securityCode', 'expirationDate'))){
+
+			$response = updatePaymentCard($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
 
 
 		default: 
@@ -372,6 +414,37 @@ function savePass($conn){
 	return $response;
 }
 
+function updateService($conn){
+
+	//getting values
+
+	$code = $_POST['code'];
+	$name = $_POST['name'];  
+	$username = $_POST['username'];
+	$password = $_POST['password'];
+	$note = $_POST['note'];  
+
+
+	$stmt = $conn->prepare("UPDATE SERVICES SET name = ?, username = ?, password = ?, note = ? WHERE SERVICES.CODE = ?");
+
+	$stmt->bind_param("ssssi", $name, $username, $password, $note, $code);
+
+	if($stmt->execute()){
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Password updated successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not update your password right now';
+	}
+
+	return $response;
+}
+
 function getServices($conn){
 
 			//getting values
@@ -481,6 +554,35 @@ function saveNote($conn){
 
 }
 
+function updateNote($conn){
+
+	//getting values
+
+	$code = $_POST['code'];
+	$name = $_POST['name'];  
+	$note = $_POST['note'];  
+
+
+	$stmt = $conn->prepare("UPDATE NOTES SET name = ?, note = ? WHERE NOTES.CODE = ?");
+
+	$stmt->bind_param("ssi", $name, $note, $code);
+
+	if($stmt->execute()){
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Note updated successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not update your note right now';
+	}
+
+	return $response;
+}
+
 function getNotes($conn){
 
 	$userId = $_GET["userId"];
@@ -544,18 +646,16 @@ function savePaymentCard($conn){
 	$struserId = $_POST['userId'];
 	$name = $_POST['name'];  
 	$nameOnCard = $_POST['nameOnCard'];
-	$type = $_POST['type'];
 	$number = $_POST['number'];
 	$securityCode = $_POST['securityCode'];
-	$startDate = $_POST['startDate'];
 	$expirationDate = $_POST['expirationDate'];
 
 	$userId = (int) $struserId;
  			//creating the query 
 
-	$stmt = $conn->prepare("INSERT INTO PAYMENT_CARDS (userId, name, name_on_card, type, number, security_code, start_date, expiration_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+	$stmt = $conn->prepare("INSERT INTO PAYMENT_CARDS (userId, name, name_on_card, number, security_code, expiration_date) VALUES (?, ?, ?, ?, ?, ?)");
 
-	$stmt->bind_param("isssssss", $userId, $name, $nameOnCard, $type, $number, $securityCode, $startDate, $expirationDate);
+	$stmt->bind_param("isssss", $userId, $name, $nameOnCard, $number, $securityCode, $expirationDate);
 
 	if($stmt->execute()){
 
@@ -592,7 +692,7 @@ function getPaymentCards($conn){
 
 	if($stmt->num_rows > 0){
 
-		$stmt->bind_result($code, $userId, $name, $nameOnCard, $type, $number, $securityCode, $startDate, $expirationDate);
+		$stmt->bind_result($code, $userId, $name, $nameOnCard, $number, $securityCode, $expirationDate);
 
 		$paymentCards = array();
 
@@ -603,10 +703,8 @@ function getPaymentCards($conn){
 				'userId'=>$userId,
 				'name'=>$name,
 				'nameOnCard'=>$nameOnCard,
-				'type'=>$type,
 				'number'=>$number,
 				'securityCode'=>$securityCode,
-				'startDate'=>$startDate,
 				'expirationDate'=>$expirationDate
 
 			);
@@ -616,11 +714,42 @@ function getPaymentCards($conn){
 		$response['error'] = false;
 
 		$response['message'] = 'List loaded successfully'; 
-		$response['notes'] = $paymentCards; 
+		$response['paymentCards'] = $paymentCards; 
 	}
 
 	return $response;
 
+}
+
+function updatePaymentCard($conn){
+
+	//getting values
+
+	$code = $_POST['code'];
+	$name = $_POST['name'];  
+	$nameOnCard = $_POST['nameOnCard'];
+	$number = $_POST['number'];  
+	$securityCode = $_POST['securityCode'];  
+	$expirationDate = $_POST['expirationDate'];  
+  
+	$stmt = $conn->prepare("UPDATE PAYMENT_CARDS SET name = ?, name_on_card = ?, number = ?, security_code = ?, expiration_date = ? WHERE PAYMENT_CARDS.CODE = ?");
+
+	$stmt->bind_param("sssssi", $name, $nameOnCard, $number, $securityCode, $expirationDate, $code);
+
+	if($stmt->execute()){
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Note updated successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not update your note right now';
+	}
+
+	return $response;
 }
 
 function deletePaymentCard($conn){
