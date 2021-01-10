@@ -225,6 +225,62 @@ if(isset($_GET['apicall'])){
 
 		break;
 
+		case 'saveBankAcc':
+
+		if(isTheseParametersAvailable(array('userId', 'name', 'IBAN', 'PIN'))){
+
+			$response = saveBankAcc($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
+		case 'getBankAccs':
+
+		if(isTheseParametersAvailable(array('userId'))){
+
+			$response = getBankAccs($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
+		case 'deleteBankAcc':
+
+		if(isTheseParametersAvailable(array('code'))){
+
+			$response = deleteBankAcc($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
+		case 'updateBankAcc':
+
+		if(isTheseParametersAvailable(array('code', 'name', 'IBAN', 'PIN'))){
+
+			$response = updateBankAcc($conn);
+			
+		}else{
+
+			$response['error'] = true; 
+			$response['message'] = 'Required parameters are not available'; 
+		}
+
+		break;
+
 
 
 		default: 
@@ -767,6 +823,130 @@ function deletePaymentCard($conn){
 	}else{
 		$response['error'] = true; 
 		$response['message'] = 'Payment card could not be deleted'; 
+	}
+
+	return $response;
+}
+
+function saveBankAcc($conn){
+
+	$struserId = $_POST['userId'];
+	$name = $_POST['name'];  
+	$IBAN = $_POST['IBAN'];
+	$PIN = $_POST['PIN'];
+
+	$userId = (int) $struserId;
+ 			//creating the query 
+
+	$stmt = $conn->prepare("INSERT INTO BANK_ACCOUNTS (userId, name, IBAN, PIN) VALUES (?, ?, ?, ?)");
+
+	$stmt->bind_param("isss", $userId, $name, $IBAN, $PIN);
+
+	if($stmt->execute()){
+
+		$stmt = $conn->prepare("SELECT LAST_INSERT_ID()"); 
+		$stmt->execute();
+		$stmt->bind_result($code);
+		$stmt->fetch();
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Bank account saved successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not save your payment card right now';
+	}
+
+	return $response;
+
+}
+
+function getBankAccs($conn){
+
+	$userId = $_GET["userId"];
+
+ 			//creating the query 
+	$stmt = $conn->prepare("SELECT * FROM BANK_ACCOUNTS WHERE USERID = ?");
+	$stmt->bind_param("i", $userId);
+
+	$stmt->execute();
+	$stmt->store_result();
+
+	if($stmt->num_rows > 0){
+
+		$stmt->bind_result($code, $userId, $name, $IBAN, $PIN);
+
+		$bankAccounts = array();
+
+		while($stmt->fetch()){
+
+			$row = array(
+				'code'=>$code,
+				'userId'=>$userId,
+				'name'=>$name,
+				'IBAN'=>$IBAN,
+				'PIN'=>$PIN,
+			);
+			array_push($bankAccounts, $row);
+		}
+
+		$response['error'] = false;
+
+		$response['message'] = 'List loaded successfully'; 
+		$response['bankAccounts'] = $bankAccounts; 
+	}
+
+	return $response;
+
+}
+
+function updateBankAcc($conn){
+
+	//getting values
+
+	$code = $_POST['code'];
+	$name = $_POST['name'];    
+	$IBAN = $_POST['IBAN'];  
+	$PIN = $_POST['PIN'];  
+  
+	$stmt = $conn->prepare("UPDATE BANK_ACCOUNTS SET name = ?, IBAN = ?, PIN = ? WHERE BANK_ACCOUNTS.CODE = ?");
+
+	$stmt->bind_param("sssi", $name, $IBAN, $PIN, $code);
+
+	if($stmt->execute()){
+
+		$stmt->close();
+
+		$response['error'] = false; 
+		$response['message'] = 'Bank account updated successfully';
+		$response['code'] = $code;
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'We could not update your bank account right now';
+	}
+
+	return $response;
+}
+
+function deleteBankAcc($conn){
+
+	$code = $_POST["code"];
+
+	$stmt = $conn->prepare("DELETE FROM BANK_ACCOUNTS WHERE BANK_ACCOUNTS.CODE = ?");
+	$stmt->bind_param("i", $code);
+
+	if($stmt->execute()){
+
+		$response['error'] = false; 
+		$response['message'] = 'Bank account deleted successfully'; 
+
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'Bank account could not be deleted'; 
 	}
 
 	return $response;
