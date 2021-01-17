@@ -443,11 +443,12 @@ function savePass($conn){
 	$username = $_POST['username'];
 	$password = $_POST['password'];
 	$note = $_POST['note'];  
+	$expirationDate = $_POST['expirationDate'];
 
 	$userId = (int) $struserId;
  			//creating the query 
-	$stmt = $conn->prepare("INSERT INTO SERVICES (userId, name, username, password, note) VALUES (?, ?, ?, ?, ?)");
-	$stmt->bind_param("issss", $userId, $name, $username, $password, $note);
+	$stmt = $conn->prepare("INSERT INTO SERVICES (userId, name, username, password, note, expiration_date) VALUES (?, ?, ?, ?, ?, ?)");
+	$stmt->bind_param("isssss", $userId, $name, $username, $password, $note, $expirationDate);
 
 	if($stmt->execute()){
 
@@ -515,7 +516,7 @@ function getServices($conn){
 
 	if($stmt->num_rows > 0){
 
-		$stmt->bind_result($code, $userId, $name, $username, $password, $note);
+		$stmt->bind_result($code, $userId, $name, $username, $password, $note, $expirationDate);
 
 		$passwords = array();
 
