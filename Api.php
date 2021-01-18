@@ -528,7 +528,8 @@ function getServices($conn){
 				'name'=>$name,
 				'username'=>$username,
 				'password'=>$password,
-				'note'=>$note
+				'note'=>$note,
+				'expirationDate'=>$expirationDate
 			);
 			array_push($passwords, $row);
 		}
